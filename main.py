@@ -30,7 +30,7 @@ with st.sidebar:
         degree = st.number_input(label='Select the degree of the polynomial:', value=3, min_value=1, step=1)
         polynomial = []
         for i in range(degree + 1):
-            polynomial.append(st.number_input(f"Enter coefficient for x^{degree - i}", key=f"coeff_{i}", value=1))
+            polynomial.append(st.number_input(f"Enter coefficient for x^{degree - i}", key=f"coeff_{i}", value=1.0, step=1.0))
         st.write('Polynomial Shown: ' + write_polynomial(polynomial))
 
     with col2: # Window tab; sets the desired window for the drawing
