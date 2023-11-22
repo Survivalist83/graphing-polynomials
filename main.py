@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
+import streamlit as st
 
 def calculate_y(polynomial, x):
     y_val = 0
@@ -8,8 +9,7 @@ def calculate_y(polynomial, x):
         y_val = y_val + (x ** (degree - j) * polynomial[j])
     return y_val
 
-polynomial = [2, -1, 3, 6, -4] # polynomial gets inputted here
-# polynomial = [1, 0, 0]
+polynomial = [2, -1, 3, 6, -4]
 degree = len(polynomial) - 1
 
 X_MIN = -10
@@ -36,11 +36,9 @@ points.loc[points['y_real'] == 0, 'color'] = 'green'
 fig = go.Figure(data=[go.Scatter3d(x=points['x'], y=points['i'], z=points['y_real'], mode='markers',
                                   marker=dict(color=points['color']))])
 
-# Customize the layout
 fig.update_layout(scene=dict(aspectratio=dict(x=1, y=1, z=1), 
                              xaxis=dict(title='Real'),
                              yaxis=dict(title='Imaginary'),
                              zaxis=dict(title='Y')))
 
-# Show the plot
-fig.show()
+st.plotly_chart(fig, use_container_width=True, sharing='streamlit')
