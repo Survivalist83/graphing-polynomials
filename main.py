@@ -47,7 +47,7 @@ with st.sidebar:
 points = pd.DataFrame(columns=['x', 'i', 'y', 'type'])
 for x in np.arange(X_MIN, X_MAX + 1, X_STEP):
     for i in np.arange(I_MIN, I_MAX + 1, I_STEP):
-        points.loc[len(points)] = {'x': x, 'i': i, 'y': calculate_y(polynomial, complex(x, i)).real, 'type': 'real'}
+        points.loc[len(points)] = {'x': x, 'i': i, 'y': calculate_y(polynomial, complex(x, i)).real - 1, 'type': 'real'}
         points.loc[len(points)] = {'x': x, 'i': i, 'y': calculate_y(polynomial, complex(x, i)).imag, 'type': 'imag'}
 
 # dot colors
@@ -82,3 +82,4 @@ st.plotly_chart(fig, use_container_width=True, sharing='streamlit')
 st.write('Red represents the real part of y, and blue is the imaginary part. You can show/hide them at your convenience with the checkboxes above.')
 st.write('Green is when i is zero, aka what you see when you plug it into your graphing calculator.')
 st.write('When y is equal to zero, the red/blue is a bit darker. Green stays the same when y equals zero.')
+st.write('Note: since computers don\'t have infinite processing power, I can\'t graph every dot in this graph, which is why the "step" inputs exist. To minimize this, make step very small (which has a high impact on performance).')
