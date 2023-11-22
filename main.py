@@ -47,7 +47,7 @@ with st.sidebar:
 points = pd.DataFrame(columns=['x', 'i', 'y', 'type'])
 for x in np.arange(X_MIN, X_MAX + 1, X_STEP):
     for i in np.arange(I_MIN, I_MAX + 1, I_STEP):
-        points.loc[len(points)] = {'x': x, 'i': i, 'y': calculate_y(polynomial, complex(x, i)).real - 1, 'type': 'real'}
+        points.loc[len(points)] = {'x': x, 'i': i, 'y': calculate_y(polynomial, complex(x, i)).real, 'type': 'real'}
         points.loc[len(points)] = {'x': x, 'i': i, 'y': calculate_y(polynomial, complex(x, i)).imag, 'type': 'imag'}
 
 # dot colors
