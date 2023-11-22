@@ -3,6 +3,18 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
+def write_polynomial(polynomial):
+    poly = ''
+    for i in range(len(polynomial)):
+        if (polynomial[i] != 0):
+            if (len(polynomial) != i and i != 0):
+                if (polynomial[i] < 0):
+                    poly = poly + ' - '
+                else:
+                    poly = poly + ' + '
+            poly = poly + str(abs(polynomial[i]) if abs(polynomial[i]) != 1 else '') + 'x^' + str(len(polynomial) - i - 1)
+    return poly
+
 def calculate_y(polynomial, x):
     y_val = 0
     for j in range(degree + 1):
@@ -19,6 +31,7 @@ with st.sidebar:
         polynomial = []
         for i in range(degree + 1):
             polynomial.append(st.number_input(f"Enter coefficient for x^{degree - i}", key=f"coeff_{i}", value=1))
+        st.write('Polynomial Shown: ' + write_polynomial(polynomial))
 
     with col2: # Window tab; sets the desired window for the drawing
         st.header('Window')
@@ -28,34 +41,34 @@ with st.sidebar:
         I_MIN = st.number_input(label='Left I Bound', value=-10.0, step=0.1)
         I_MAX = st.number_input(label='Right I Bound', value=10.0, step=0.1)
         I_STEP = st.number_input(label='I Step', value=1.0, step=0.1)
-        DOT_SIZE = st.number_input(label='Dot Size', value=5, min_value=1, max_value=10, step=1)
-
-# this part displays the polynomial being drawn onto the screen
-poly = ''
-for i in range(len(polynomial)):
-    if (polynomial[i] != 0):
-        if (len(polynomial) != i and i != 0):
-            if (polynomial[i] < 0):
-                poly = poly + ' - '
-            else:
-                poly = poly + ' + '
-        poly = poly + str(abs(polynomial[i]) if abs(polynomial[i]) != 1 else '') + 'x^' + str(len(polynomial) - i - 1)
-st.write('Polynomial Shown: ' + poly)
+        DOT_SIZE = st.number_input(label='Dot Size', value=3, min_value=1, max_value=10, step=1)
 
 # calculates dot locations
-points = pd.DataFrame(columns=['x', 'i', 'y'])
+points = pd.DataFrame(columns=['x', 'i', 'y', 'type'])
 for x in np.arange(X_MIN, X_MAX + 1, X_STEP):
     for i in np.arange(I_MIN, I_MAX + 1, I_STEP):
-        points.loc[len(points)] = {'x': x, 'i': i, 'y': calculate_y(polynomial, complex(x, i))}
-points['y_real'] = points['y'].apply(lambda z: z.real)
-points['y_imag'] = points['y'].apply(lambda z: z.imag)
+        points.loc[len(points)] = {'x': x, 'i': i, 'y': calculate_y(polynomial, complex(x, i)).real, 'type': 'real'}
+        points.loc[len(points)] = {'x': x, 'i': i, 'y': calculate_y(polynomial, complex(x, i)).imag, 'type': 'imag'}
 
-# graphing stuff
-points['color'] = 'red'
-points.loc[points['y_real'] == 0, 'color'] = 'green'
-points.loc[points['i'] == 0, 'color'] = 'blue'
+# dot colors
+points.loc[(points['type'] == 'real'), 'color'] = '#FF4031'
+points.loc[(points['type'] == 'imag'), 'color'] = '#0541FF'
+points.loc[(points['type'] == 'real') & (points['y'] == 0), 'color'] = '#9E0000'
+points.loc[(points['type'] == 'imag') & (points['y'] == 0), 'color'] = '#00009E'
+points.loc[(points['type'] == 'real') & (points['i'] == 0), 'color'] = '#85FF7D'
+points.loc[(points['type'] == 'imag') & (points['i'] == 0), 'color'] = '#00FF00'
 
-fig = go.Figure(data=[go.Scatter3d(x=points['x'], y=points['i'], z=points['y_real'], mode='markers',
+# graph
+
+real = st.checkbox(label='Show real part of y', value=True)
+imag = st.checkbox(label='Show imaginary part of y when y is complex', value=False)
+
+if (not real):
+    points = points[points['type'] != 'real']
+if (not imag):
+    points = points[points['type'] != 'imag']
+
+fig = go.Figure(data=[go.Scatter3d(x=points['x'], y=points['i'], z=points['y'], mode='markers',
                                   marker=dict(color=points['color'], size=DOT_SIZE))])
 
 fig.update_layout(scene=dict(aspectratio=dict(x=1, y=1, z=1), 
@@ -65,12 +78,7 @@ fig.update_layout(scene=dict(aspectratio=dict(x=1, y=1, z=1),
 
 st.plotly_chart(fig, use_container_width=True, sharing='streamlit')
 
-fig = go.Figure(data=[go.Scatter3d(x=points['x'], y=points['i'], z=points['y_imag'], mode='markers',
-                                  marker=dict(color=points['color'], size=DOT_SIZE))])
-
-fig.update_layout(scene=dict(aspectratio=dict(x=1, y=1, z=1), 
-                             xaxis=dict(title='Real'),
-                             yaxis=dict(title='Imaginary'),
-                             zaxis=dict(title='Y Imaginary')))
-
-st.plotly_chart(fig, use_container_width=True, sharing='streamlit')
+# explains what each color is
+st.write('Red represents the real part of y, and blue is the imaginary part. You can show/hide them at your convenience with the checkboxes above.')
+st.write('Green is when i is zero, aka what you see when you plug it into your graphing calculator.')
+st.write('When y is equal to zero, the red/blue is a bit darker. Green stays the same when y equals zero.')
