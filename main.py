@@ -3,6 +3,8 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
+st.set_page_config(layout='wide')
+
 def write_polynomial(polynomial):
     poly = ''
     for i in range(len(polynomial)):
