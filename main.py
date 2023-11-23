@@ -43,12 +43,15 @@ with st.sidebar:
         I_STEP = st.number_input(label='I Step', value=1.0, step=0.1)
         DOT_SIZE = st.number_input(label='Dot Size', value=3, min_value=1, max_value=10, step=1)
 
+real = st.checkbox(label='Show real part of y', value=True)
+imag = st.checkbox(label='Show imaginary part of y when y is complex', value=False)
+
 # calculates dot locations
 points = pd.DataFrame(columns=['x', 'i', 'y', 'type'])
 for x in np.arange(X_MIN, X_MAX + 1, X_STEP):
     for i in np.arange(I_MIN, I_MAX + 1, I_STEP):
-        points.loc[len(points)] = {'x': x, 'i': i, 'y': calculate_y(polynomial, complex(x, i)).real, 'type': 'real'}
-        points.loc[len(points)] = {'x': x, 'i': i, 'y': calculate_y(polynomial, complex(x, i)).imag, 'type': 'imag'}
+        if (real): points.loc[len(points)] = {'x': x, 'i': i, 'y': calculate_y(polynomial, complex(x, i)).real, 'type': 'real'}
+        if (imag): points.loc[len(points)] = {'x': x, 'i': i, 'y': calculate_y(polynomial, complex(x, i)).imag, 'type': 'imag'}
 
 # dot colors
 points.loc[(points['type'] == 'real'), 'color'] = '#FF4031'
@@ -59,14 +62,6 @@ points.loc[(points['type'] == 'real') & (points['i'] == 0), 'color'] = '#85FF7D'
 points.loc[(points['type'] == 'imag') & (points['i'] == 0), 'color'] = '#00FF00'
 
 # graph
-
-real = st.checkbox(label='Show real part of y', value=True)
-imag = st.checkbox(label='Show imaginary part of y when y is complex', value=False)
-
-if (not real):
-    points = points[points['type'] != 'real']
-if (not imag):
-    points = points[points['type'] != 'imag']
 
 fig = go.Figure(data=[go.Scatter3d(x=points['x'], y=points['i'], z=points['y'], mode='markers',
                                   marker=dict(color=points['color'], size=DOT_SIZE))])
@@ -79,7 +74,18 @@ fig.update_layout(scene=dict(aspectratio=dict(x=1, y=1, z=1),
 st.plotly_chart(fig, use_container_width=True, sharing='streamlit')
 
 # explains what each color is
+st.header('Explanation of Colors')
 st.write('Red represents the real part of y, and blue is the imaginary part. You can show/hide them at your convenience with the checkboxes above.')
 st.write('Green is when i is zero, aka what you see when you plug it into your graphing calculator.')
 st.write('When y is equal to zero, the red/blue is a bit darker. Green stays the same when y equals zero.')
-st.write('Note: since computers don\'t have infinite processing power, I can\'t graph every dot in this graph, which is why the "step" inputs exist. To minimize this, make step very small (which has a high impact on performance).')
+
+st.header('Limitations')
+st.write('Only supports real integer exponents greater than or equal to zero.')
+st.write('Currently does not work with imaginary coefficients. This is something I plan to change in the future, but I haven\'t gotten to it yet.')
+st.write('For irrational numbers (pie, radicals, etc.) use a decimal approximation. There isn\'t a way to add them currently and allowing imaginary coefficients is higher on my to-do list, so don\'t expect it soon. Sorry for the inconvenience :(')
+st.write('It can\'t find any irrational zeros and will almost certainly miss decimal ones (depending on what you have "step" set to) so stick to other tools for finding zeros.')
+
+st.header('A few Notes')
+st.write('Since computers don\'t have infinite processing power, I can\'t graph every dot in this graph, which is why the "step" inputs exist. To minimize this, make step very small (which has a high impact on performance).')
+st.write('A point is a "zero" of the polynomial when both the real and imaginary parts equal zero. In other words, a zero is where both the red and blue dots overlap at y=0.')
+st.write('If anyone is good at Python, Plotly, or Streamlit and has an idea of how to make this better, implement a feature, or help in some way, feel free to help! https://github.com/Survivalist83/graphing-polynomials')
