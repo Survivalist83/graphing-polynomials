@@ -67,7 +67,7 @@ with st.sidebar:
     DOT_SIZE = st.number_input(label='Dot Size', value=3, min_value=1, max_value=10, step=1)
     GRAPH_COUNT = st.number_input(label='Number of Graphs', value=1, min_value=1, max_value=3)
 
-def graph_polynomial(column):
+def input_polynomial(column):
     # Polynomial Tab; sets the polynomial to be drawn by the program
     st.header(f'Polynomial {column + 1}' if GRAPH_COUNT != 1 else 'Polynomial')
     degree = st.number_input(label='Select the degree of the polynomial:', key=f'degree{column}', value=3, min_value=1, step=1)
@@ -81,20 +81,26 @@ def graph_polynomial(column):
     with enter2:
         for i in range(degree + 1):
             polynomial_imag.append(st.number_input(f'Enter imaginary coefficient for x^{degree - i}', key=f'imag_coeff_{i}_{column}', value=0.0, step=1.0) * 1j)
-    
-    # st.write('Polynomial Shown: ' + write_polynomial(polynomial_real, polynomial_imag))
 
     real_imag = st.radio(label='What do you want to show?', options=['Real', 'Imaginary', 'Complex'], key=f'radio{column}', index=column)
     real = real_imag == 'Real' or real_imag == 'Complex'
     imag = real_imag == 'Imaginary' or real_imag == 'Complex'
 
+
+    st.plotly_chart(graph_polynomial(polynomial_real, polynomial_imag, degree, real, imag), use_container_width=True, sharing='streamlit')
+
+def hash_complex(complex_number):
+    return hash((complex_number.real, complex_number.imag))
+
+@st.cache_data(hash_funcs={complex: hash_complex})
+def graph_polynomial(polynomial_real, polynomial_imag, degree, real, imag):
     # calculates dot locations
     points = pd.DataFrame(columns=['x', 'i', 'y', 'type'])
     for x in np.arange(X_MIN, X_MAX + 1, X_STEP):
         for i in np.arange(I_MIN, I_MAX + 1, I_STEP):
             if (real): points.loc[len(points)] = {'x': x, 'i': i, 'y': calculate_y(polynomial_real, polynomial_imag, complex(x, i), degree).real, 'type': 'real'}
             if (imag): points.loc[len(points)] = {'x': x, 'i': i, 'y': calculate_y(polynomial_real, polynomial_imag, complex(x, i), degree).imag, 'type': 'imag'}
-
+    
     # dot colors
     points.loc[(points['type'] == 'real'), 'color'] = '#FF4031'
     points.loc[(points['type'] == 'imag'), 'color'] = '#0541FF'
@@ -105,20 +111,20 @@ def graph_polynomial(column):
 
     # graph
     fig = go.Figure(data=[go.Scatter3d(x=points['x'], y=points['i'], z=points['y'], mode='markers',
-                                    marker=dict(color=points['color'], size=DOT_SIZE))])
+                                    marker=dict(color=points['color'], size=DOT_SIZE),
+                                    hovertemplate='x: %{x}, i: %{y}, y: %{z}<extra></extra>')])
 
     fig.update_layout(scene=dict(aspectratio=dict(x=1, y=1, z=1), 
                                 xaxis=dict(title='Real'),
                                 yaxis=dict(title='Imaginary'),
-                                zaxis=dict(title='Y Real')),
+                                zaxis=dict(title='Y')),
                                 title=write_polynomial(polynomial_real, polynomial_imag))
-
-    st.plotly_chart(fig, use_container_width=True, sharing='streamlit')
+    return fig
 
 columns = st.columns(GRAPH_COUNT)
 for i, col in enumerate(columns):
     with col:
-        graph_polynomial(i)
+        input_polynomial(i)
 
 # explains what each color is
 st.header('Explanation of Colors')
