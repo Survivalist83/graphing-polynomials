@@ -55,17 +55,17 @@ def calculate_y(polynomial_real, polynomial_imag, x, degree):
 
 # Window settings
 with st.sidebar:
-
     # Window tab; sets the desired window for the drawing
     st.header('Window')
-    X_MIN = st.number_input(label='Left X Bound', value=-10.0, step=0.1)
-    X_MAX = st.number_input(label='Right X Bound', value=10.0, step=0.1)
-    X_STEP = st.number_input(label='X Step', value=1.0, step=0.1)
-    I_MIN = st.number_input(label='Left I Bound', value=-10.0, step=0.1)
-    I_MAX = st.number_input(label='Right I Bound', value=10.0, step=0.1)
-    I_STEP = st.number_input(label='I Step', value=1.0, step=0.1)
+    X_MIN = st.number_input(label='Left X Bound', value=-10.0, step=1.0)
+    X_MAX = st.number_input(label='Right X Bound', value=10.0, step=1.0)
+    X_STEP = st.number_input(label='X Step', value=1.0, step=1.0)
+    I_MIN = st.number_input(label='Left I Bound', value=-10.0, step=1.0)
+    I_MAX = st.number_input(label='Right I Bound', value=10.0, step=1.0)
+    I_STEP = st.number_input(label='I Step', value=1.0, step=1.0)
     DOT_SIZE = st.number_input(label='Dot Size', value=3, min_value=1, max_value=10, step=1)
     GRAPH_COUNT = st.number_input(label='Number of Graphs', value=1, min_value=1, max_value=3)
+    WINDOW_SETTINGS = [X_MIN, X_MAX, X_STEP, I_MIN, I_MAX, I_STEP, DOT_SIZE]
 
 def input_polynomial(column):
     # Polynomial Tab; sets the polynomial to be drawn by the program
@@ -87,13 +87,13 @@ def input_polynomial(column):
     imag = real_imag == 'Imaginary' or real_imag == 'Complex'
 
 
-    st.plotly_chart(graph_polynomial(polynomial_real, polynomial_imag, degree, real, imag), use_container_width=True, sharing='streamlit')
+    st.plotly_chart(graph_polynomial(polynomial_real, polynomial_imag, degree, real, imag, WINDOW_SETTINGS), use_container_width=True, sharing='streamlit')
 
 def hash_complex(complex_number):
     return hash((complex_number.real, complex_number.imag))
 
 @st.cache_data(hash_funcs={complex: hash_complex})
-def graph_polynomial(polynomial_real, polynomial_imag, degree, real, imag):
+def graph_polynomial(polynomial_real, polynomial_imag, degree, real, imag, WINDOW_SETTINGS):
     # calculates dot locations
     points = pd.DataFrame(columns=['x', 'i', 'y', 'type'])
     for x in np.arange(X_MIN, X_MAX + 1, X_STEP):
@@ -112,7 +112,7 @@ def graph_polynomial(polynomial_real, polynomial_imag, degree, real, imag):
     # graph
     fig = go.Figure(data=[go.Scatter3d(x=points['x'], y=points['i'], z=points['y'], mode='markers',
                                     marker=dict(color=points['color'], size=DOT_SIZE),
-                                    hovertemplate='x: %{x}, i: %{y}, y: %{z}<extra></extra>')])
+                                    hovertemplate='Real: %{x}, Imaginary: %{y}, Output: %{z}<extra></extra>')])
 
     fig.update_layout(scene=dict(aspectratio=dict(x=1, y=1, z=1), 
                                 xaxis=dict(title='Real'),
