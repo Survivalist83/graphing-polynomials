@@ -5,16 +5,43 @@ import streamlit as st
 
 st.set_page_config(layout='wide')
 
-def write_polynomial(polynomial):
+def write_polynomial(polynomial_real, polynomial_imaginary):
+    if (len(polynomial_real) != len(polynomial_imaginary)): return('There has been an error calculating the polynomial.') # this should never throw, ever
+    leng = len(polynomial_real)
+
     poly = ''
-    for i in range(len(polynomial)):
-        if (polynomial[i] != 0):
-            if (len(polynomial) != i and i != 0):
-                if (polynomial[i] < 0):
-                    poly = poly + ' - '
-                else:
-                    poly = poly + ' + '
-            poly = poly + str(abs(polynomial[i]) if abs(polynomial[i]) != 1 else '') + 'x^' + str(len(polynomial) - i - 1)
+    for i in range(leng):
+        real = int(polynomial_real[i]) if (polynomial_real[i].is_integer()) else polynomial_real[i]
+        imag = int(polynomial_imaginary[i].imag) if (polynomial_imaginary[i].imag.is_integer()) else polynomial_imaginary[i]
+        
+        # handles the plus or minus at the beginning of each term
+        if (poly != '' and (polynomial_real[i] != 0 or polynomial_imaginary[i] != 0)):
+            if (real != 0 and imag != 0): # handles compex coefficients
+                poly = poly + ' + ' if (i != 0) else '' # always a plus since complex coefficients will always be in parenthesis
+            elif (real != 0): # handles real coefficients
+                poly = poly + (' +' if (real > 0) else ' -')
+            elif (imag != 0): # handles imag coefficients
+                poly = poly + (' +' if (imag > 0) else ' -')
+            else: st.write ('if you see this there is a catastrophic error (it\'s probably not that bad lol)')
+        
+        x = 'x' if (leng - i > 1) else ''
+        e = f'^{leng - i - 1}' if (leng - i > 2) else ''
+        # writes the actual coefficient
+        if (real != 0 and imag != 0): # handles complex coefficients
+            poly = poly + f'({real} {"+" if (imag > 0) else "-"} {abs(imag)}i){x}{e}'
+        
+        elif (real != 0): # handles real coefficients
+            if (real == 1 and i + 1 != leng): a = ' '
+            elif (real == -1 and i + 1 != leng): a = ' '
+            else: a = ' ' + str(abs(real))
+            poly = poly + a + x + e
+        
+        elif (imag != 0): # handles imaginary (but specifically not complex) coefficients
+            if (imag == 1 and i + 1 != leng): a = ' '
+            elif (imag == -1 and i + 1 != leng): a = ' '
+            else: a = ' ' + str(abs(imag))
+            poly = poly + a + 'i' + x + e
+
     return poly
 
 def calculate_y(polynomial, x, degree):
@@ -41,10 +68,18 @@ def graph_polynomial(column):
     # Polynomial Tab; sets the polynomial to be drawn by the program
     st.header(f'Polynomial {column + 1}' if GRAPH_COUNT != 1 else 'Polynomial')
     degree = st.number_input(label='Select the degree of the polynomial:', key=f'degree{column}', value=3, min_value=1, step=1)
-    polynomial = []
-    for i in range(degree + 1):
-        polynomial.append(st.number_input(f'Enter coefficient for x^{degree - i}', key=f'coeff_{i}_{column}', value=1.0, step=1.0))
-    st.write('Polynomial Shown: ' + write_polynomial(polynomial))
+    polynomial_real = []
+    polynomial_imag = []
+    
+    enter1, enter2 = st.columns(2)
+    with enter1:
+        for i in range(degree + 1):
+            polynomial_real.append(st.number_input(f'Enter real coefficient for x^{degree - i}', key=f'real_coeff_{i}_{column}', value=1.0, step=1.0))
+    with enter2:
+        for i in range(degree + 1):
+            polynomial_imag.append(st.number_input(f'Enter imaginary coefficient for x^{degree - i}', key=f'imag_coeff_{i}_{column}', value=0.0, step=1.0) * 1j)
+    
+    st.write('Polynomial Shown: ' + write_polynomial(polynomial_real, polynomial_imag))
 
     real_imag = st.radio(label='What do you want to show?', options=['Real', 'Imaginary', 'Complex'], key=f'radio{column}', index=column)
     real = real_imag == 'Real' or real_imag == 'Complex'
@@ -54,8 +89,8 @@ def graph_polynomial(column):
     points = pd.DataFrame(columns=['x', 'i', 'y', 'type'])
     for x in np.arange(X_MIN, X_MAX + 1, X_STEP):
         for i in np.arange(I_MIN, I_MAX + 1, I_STEP):
-            if (real): points.loc[len(points)] = {'x': x, 'i': i, 'y': calculate_y(polynomial, complex(x, i), degree).real, 'type': 'real'}
-            if (imag): points.loc[len(points)] = {'x': x, 'i': i, 'y': calculate_y(polynomial, complex(x, i), degree).imag, 'type': 'imag'}
+            if (real): points.loc[len(points)] = {'x': x, 'i': i, 'y': calculate_y(polynomial_real, complex(x, i), degree).real, 'type': 'real'}
+            if (imag): points.loc[len(points)] = {'x': x, 'i': i, 'y': calculate_y(polynomial_real, complex(x, i), degree).imag, 'type': 'imag'}
 
     # dot colors
     points.loc[(points['type'] == 'real'), 'color'] = '#FF4031'
