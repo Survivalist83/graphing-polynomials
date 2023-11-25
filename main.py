@@ -65,7 +65,8 @@ with st.sidebar:
     I_STEP = st.number_input(label='I Step', value=1.0, step=1.0)
     DOT_SIZE = st.number_input(label='Dot Size', value=3, min_value=1, max_value=10, step=1)
     GRAPH_COUNT = st.number_input(label='Number of Graphs', value=1, min_value=1, max_value=3)
-    WINDOW_SETTINGS = [X_MIN, X_MAX, X_STEP, I_MIN, I_MAX, I_STEP, DOT_SIZE]
+    OVERLAP_GRAPHS = st.checkbox(label='Overlap real and imaginary graphs when showing complex?', value=False)
+    WINDOW_SETTINGS = [X_MIN, X_MAX, X_STEP, I_MIN, I_MAX, I_STEP, DOT_SIZE, OVERLAP_GRAPHS]
 
 def input_polynomial(column):
     # Polynomial Tab; sets the polynomial to be drawn by the program
@@ -83,17 +84,22 @@ def input_polynomial(column):
             polynomial_imag.append(st.number_input(f'Enter imaginary coefficient for x^{degree - i}', key=f'imag_coeff_{i}_{column}', value=0.0, step=1.0) * 1j)
 
     real_imag = st.radio(label='What do you want to show?', options=['Real', 'Imaginary', 'Complex'], key=f'radio{column}', index=column)
-    real = real_imag == 'Real' or real_imag == 'Complex'
-    imag = real_imag == 'Imaginary' or real_imag == 'Complex'
+    
+    fig = calculate_polynomial(polynomial_real, polynomial_imag, degree, real_imag, WINDOW_SETTINGS)
 
-
-    st.plotly_chart(graph_polynomial(polynomial_real, polynomial_imag, degree, real, imag, WINDOW_SETTINGS), use_container_width=True, sharing='streamlit')
+    columns = st.columns(1 + (0 if fig[1] == '' else 1))
+    for i, col in enumerate(columns):
+        with col:
+            st.plotly_chart(fig[i], use_container_width=True, sharing='streamlit')
 
 def hash_complex(complex_number):
     return hash((complex_number.real, complex_number.imag))
 
 @st.cache_data(hash_funcs={complex: hash_complex})
-def graph_polynomial(polynomial_real, polynomial_imag, degree, real, imag, WINDOW_SETTINGS):
+def calculate_polynomial(polynomial_real, polynomial_imag, degree, real_imag, WINDOW_SETTINGS):
+    real = real_imag == 'Real' or real_imag == 'Complex'
+    imag = real_imag == 'Imaginary' or real_imag == 'Complex'
+
     # calculates dot locations
     points = pd.DataFrame(columns=['x', 'i', 'y', 'type'])
     for x in np.arange(X_MIN, X_MAX + 1, X_STEP):
@@ -110,16 +116,37 @@ def graph_polynomial(polynomial_real, polynomial_imag, degree, real, imag, WINDO
     points.loc[(points['type'] == 'imag') & (points['i'] == 0), 'color'] = '#00FF00'
 
     # graph
-    fig = go.Figure(data=[go.Scatter3d(x=points['x'], y=points['i'], z=points['y'], mode='markers',
-                                    marker=dict(color=points['color'], size=DOT_SIZE),
-                                    hovertemplate='Real: %{x}, Imaginary: %{y}, Output: %{z}<extra></extra>')])
 
-    fig.update_layout(scene=dict(aspectratio=dict(x=1, y=1, z=1), 
-                                xaxis=dict(title='Real'),
-                                yaxis=dict(title='Imaginary'),
-                                zaxis=dict(title='Y')),
-                                title=write_polynomial(polynomial_real, polynomial_imag))
-    return fig
+    fig = ''
+    if (real_imag == 'Real' or real_imag == 'Imaginary' or OVERLAP_GRAPHS):
+        fig = go.Figure(data=[go.Scatter3d(x=points['x'], y=points['i'], z=points['y'], mode='markers',
+                                        marker=dict(color=points['color'], size=DOT_SIZE),
+                                        hovertemplate='Real: %{x}, Imaginary: %{y}, Output: %{z}<extra></extra>')])
+        fig.update_layout(scene=dict(aspectratio=dict(x=1, y=1, z=1),
+                                    xaxis=dict(title='Real'),
+                                    yaxis=dict(title='Imaginary'),
+                                    zaxis=dict(title='Y')),
+                                    title=write_polynomial(polynomial_real, polynomial_imag))
+        return fig, ''
+    else:
+        points_real = points[points['type'] == 'real']
+        fig_real = go.Figure(data=[go.Scatter3d(x=points_real['x'], y=points_real['i'], z=points_real['y'], mode='markers',
+                                        marker=dict(color=points_real['color'], size=DOT_SIZE),
+                                        hovertemplate='Real: %{x}, Imaginary: %{y}, Output: %{z}<extra></extra>')])
+        fig_real.update_layout(scene=dict(aspectratio=dict(x=1, y=1, z=1),
+                                    xaxis=dict(title='Real'),
+                                    yaxis=dict(title='Imaginary'),
+                                    zaxis=dict(title='Y')),
+                                    title=write_polynomial(polynomial_real, polynomial_imag))
+        points_imag = points[points['type'] == 'imag']
+        fig_imag = go.Figure(data=[go.Scatter3d(x=points_imag['x'], y=points_imag['i'], z=points_imag['y'], mode='markers',
+                                        marker=dict(color=points_imag['color'], size=DOT_SIZE),
+                                        hovertemplate='Real: %{x}, Imaginary: %{y}, Output: %{z}<extra></extra>')])
+        fig_imag.update_layout(scene=dict(aspectratio=dict(x=1, y=1, z=1),
+                                    xaxis=dict(title='Real'),
+                                    yaxis=dict(title='Imaginary'),
+                                    zaxis=dict(title='Y')))
+        return fig_real, fig_imag
 
 columns = st.columns(GRAPH_COUNT)
 for i, col in enumerate(columns):
