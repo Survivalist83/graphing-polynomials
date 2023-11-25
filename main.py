@@ -167,4 +167,5 @@ st.write('It can\'t find any irrational zeros and will almost certainly miss dec
 st.header('A few Notes')
 st.write('Since computers don\'t have infinite processing power, I can\'t graph every dot in this graph, which is why the "step" inputs exist. To minimize this, make step very small (which has a high impact on performance).')
 st.write('A point is a "zero" of the polynomial when both the real and imaginary parts equal zero. In other words, a zero is where both the red and blue dots overlap at y=0.')
+st.write('This has been designed with dark mode in mind. Click the three dots (upper right hand corner), click settings, and under "Choose app theme, colors and fonts" select "Dark" for best viewing experience.')
 st.write('If anyone is good at Python, Plotly, or Streamlit and has an idea of how to make this better, implement a feature, or help in some way, feel free to help! https://github.com/Survivalist83/graphing-polynomials')
