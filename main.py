@@ -104,8 +104,9 @@ def calculate_polynomial(polynomial_real, polynomial_imag, degree, real_imag, WI
     points = pd.DataFrame(columns=['x', 'i', 'y', 'type'])
     for x in np.arange(X_MIN, X_MAX + 1, X_STEP):
         for i in np.arange(I_MIN, I_MAX + 1, I_STEP):
-            if (real): points.loc[len(points)] = {'x': x, 'i': i, 'y': calculate_y(polynomial_real, polynomial_imag, complex(x, i), degree).real, 'type': 'real'}
-            if (imag): points.loc[len(points)] = {'x': x, 'i': i, 'y': calculate_y(polynomial_real, polynomial_imag, complex(x, i), degree).imag, 'type': 'imag'}
+            y = calculate_y(polynomial_real, polynomial_imag, complex(x, i), degree)
+            if (real): points.loc[len(points)] = {'x': x, 'i': i, 'y': y.real, 'type': 'real'}
+            if (imag): points.loc[len(points)] = {'x': x, 'i': i, 'y': y.imag, 'type': 'imag'}
     
     # dot colors
     points.loc[(points['type'] == 'real'), 'color'] = '#FF4031'
