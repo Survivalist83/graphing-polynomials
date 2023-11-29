@@ -55,6 +55,10 @@ def calculate_y(polynomial_real, polynomial_imag, x, degree):
 
 # Window settings
 with st.sidebar:
+    MODE = st.radio(label='Mode', options=['Cartesian Square', 'Cartesian Circle'],
+                    help='The default option is Cartesian Square, and it is safe to leave it there. ' +
+                    'Cartesian Circle shaves off points around the edges so it looks more circular.')
+    
     # Window tab; sets the desired window for the drawing
     st.header('Window')
     X_MIN = st.number_input(label='Left X Bound', value=-10.0, step=1.0)
@@ -66,7 +70,12 @@ with st.sidebar:
     DOT_SIZE = st.number_input(label='Dot Size', value=3, min_value=1, max_value=10, step=1)
     GRAPH_COUNT = st.number_input(label='Number of Graphs', value=1, min_value=1, max_value=3)
     OVERLAP_GRAPHS = st.checkbox(label='Overlap real and imaginary graphs when showing complex?', value=False)
-    WINDOW_SETTINGS = [X_MIN, X_MAX, X_STEP, I_MIN, I_MAX, I_STEP, DOT_SIZE, OVERLAP_GRAPHS]
+    WINDOW_SETTINGS = [MODE, X_MIN, X_MAX, X_STEP, I_MIN, I_MAX, I_STEP, DOT_SIZE, OVERLAP_GRAPHS]
+
+def check_circle(real, imag):
+    x = (real - (0.5 * (X_MIN + X_MAX))) ** 2 * 4 / ((X_MIN - X_MAX) ** 2)
+    y = (imag - (0.5 * (I_MIN + I_MAX))) ** 2 * 4 / ((I_MIN - I_MAX) ** 2)
+    return x + y <= 1
 
 def input_polynomial(column):
     # Polynomial Tab; sets the polynomial to be drawn by the program
@@ -101,12 +110,14 @@ def calculate_polynomial(polynomial_real, polynomial_imag, degree, real_imag, WI
     imag = real_imag == 'Imaginary' or real_imag == 'Complex'
 
     # calculates dot locations
-    points = pd.DataFrame(columns=['x', 'i', 'y', 'type'])
+    points = pd.DataFrame(columns=['x', 'i', 'y', 'type', 'circle'])
     for x in np.arange(X_MIN, X_MAX + 1, X_STEP):
         for i in np.arange(I_MIN, I_MAX + 1, I_STEP):
-            y = calculate_y(polynomial_real, polynomial_imag, complex(x, i), degree)
-            if (real): points.loc[len(points)] = {'x': x, 'i': i, 'y': y.real, 'type': 'real'}
-            if (imag): points.loc[len(points)] = {'x': x, 'i': i, 'y': y.imag, 'type': 'imag'}
+            circle = check_circle(x, i)
+            if (MODE != 'Cartesian Circle' or circle):
+                y = calculate_y(polynomial_real, polynomial_imag, complex(x, i), degree)
+                if (real): points.loc[len(points)] = {'x': x, 'i': i, 'y': y.real, 'type': 'real', 'circle': circle}
+                if (imag): points.loc[len(points)] = {'x': x, 'i': i, 'y': y.imag, 'type': 'imag', 'circle': circle}
     
     # dot colors
     points.loc[(points['type'] == 'real'), 'color'] = '#FF4031'
