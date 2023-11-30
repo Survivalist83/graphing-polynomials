@@ -6,58 +6,6 @@ import math
 
 st.set_page_config(layout='wide')
 
-def hash_list(list):
-    return hash(tuple(list))
-
-@st.cache_data(hash_funcs={list: hash_list})
-def write_polynomial(polynomial_real, polynomial_imag):
-    if (len(polynomial_real) != len(polynomial_imag)): return('There has been an error calculating the polynomial.') # this should never throw, ever
-    leng = len(polynomial_real)
-
-    poly = ''
-    for i in range(leng):
-        real = int(polynomial_real[i]) if (polynomial_real[i].is_integer()) else polynomial_real[i]
-        imag = int(polynomial_imag[i].imag) if (polynomial_imag[i].imag.is_integer()) else polynomial_imag[i]
-        
-        # handles the plus or minus at the beginning of each term
-        if (poly != '' and (polynomial_real[i] != 0 or polynomial_imag[i] != 0)):
-            if (real != 0 and imag != 0): # handles compex coefficients
-                poly = poly + ' + ' if (i != 0) else '' # always a plus since complex coefficients will always be in parenthesis
-            elif (real != 0): # handles real coefficients
-                poly = poly + (' +' if (real > 0) else ' -')
-            elif (imag != 0): # handles imag coefficients
-                poly = poly + (' +' if (imag > 0) else ' -')
-            else: st.write ('if you see this there is a catastrophic error (it\'s probably not that bad lol)')
-        
-        x = 'x' if (leng - i > 1) else ''
-        e = f'^{leng - i - 1}' if (leng - i > 2) else ''
-        # writes the actual coefficient
-        if (real != 0 and imag != 0): # handles complex coefficients
-            if (imag == 1): a = ' '
-            elif (imag == -1): a = ' '
-            else: a = ' ' + str(abs(imag))
-            poly = poly + f'({real} {"+" if (imag > 0) else "-"}{a}i){x}{e}'
-        
-        elif (real != 0): # handles real coefficients
-            if (real == 1 and i + 1 != leng): a = ' '
-            elif (real == -1 and i + 1 != leng): a = ' '
-            else: a = ' ' + str(abs(real))
-            poly = poly + a + x + e
-        
-        elif (imag != 0): # handles imaginary (but specifically not complex) coefficients
-            if (imag == 1): a = ' '
-            elif (imag == -1): a = ' '
-            else: a = ' ' + str(abs(imag))
-            poly = poly + a + 'i' + x + e
-
-    return poly
-
-def calculate_y(polynomial_real, polynomial_imag, x, degree):
-    y_val = 0
-    for j in range(degree + 1):
-        y_val = y_val + (x ** (degree - j) * (polynomial_real[j] + polynomial_imag[j]))
-    return y_val
-
 # Window settings
 with st.sidebar:
     MODE = st.radio(label='Mode', options=['Cartesian', 'Polar'],
@@ -87,21 +35,7 @@ with st.sidebar:
     GRAPH_COUNT = st.number_input(label='Number of Graphs', value=1, min_value=1, max_value=3)
     OVERLAP_GRAPHS = st.checkbox(label='Overlap real and imaginary graphs when showing complex?', value=False)
     WINDOW_SETTINGS.append(OVERLAP_GRAPHS)
-
-
-def check_circle(real, imag):
-    x = (real - (0.5 * (X_MIN + X_MAX))) ** 2 * 4 / ((X_MIN - X_MAX) ** 2)
-    y = (imag - (0.5 * (I_MIN + I_MAX))) ** 2 * 4 / ((I_MIN - I_MAX) ** 2)
-    return x + y <= 1
-
-def offset_polar_square(radians, type):
-    if (SHAPE != type or radians % (math.pi / 2) == 0):
-        return 1
-    else: # This code is ChatGPT's doing, not mine. I haven't taken trig yet and don't fully understand this :)
-        left_right = abs(1 / math.cos(radians % (math.pi / 2)))
-        up_down = abs(1 / math.sin(radians % (math.pi / 2)))
-        return min(left_right, up_down)
-
+    
 def input_polynomial(column):
     # Polynomial Tab; sets the polynomial to be drawn by the program
     st.header(f'Polynomial {column + 1}' if GRAPH_COUNT != 1 else 'Polynomial')
@@ -127,9 +61,6 @@ def input_polynomial(column):
             fig[i].update_traces(marker=dict(size=DOT_SIZE))
             st.plotly_chart(fig[i], use_container_width=True, sharing='streamlit')
 
-def hash_complex(complex_number):
-    return hash((complex_number.real, complex_number.imag))
-
 @st.cache_data(hash_funcs={complex: hash_complex})
 def calculate_polynomial(polynomial_real, polynomial_imag, degree, real_imag, WINDOW_SETTINGS):
     real = real_imag == 'Real' or real_imag == 'Complex'
@@ -149,8 +80,8 @@ def calculate_polynomial(polynomial_real, polynomial_imag, degree, real_imag, WI
         points = pd.DataFrame(columns=['x', 'i', 'y', 'type'])
         for theta in range(int(360 / THETA_STEP)):
             radians = math.radians(theta * THETA_STEP)
-            for increment in range(int(DOT_COUNT * offset_polar_square(radians, 'Mix of Both'))):
-                radius = increment * DOT_INCREMENT * offset_polar_square(radians, 'Square')
+            for increment in range(int(DOT_COUNT * offset_polar(radians, 'Mix of Both'))):
+                radius = increment * DOT_INCREMENT * offset_polar(radians, 'Square')
                 x = radius * math.cos(math.radians(theta * THETA_STEP))
                 i = radius * math.sin(math.radians(theta * THETA_STEP))
                 y = calculate_y(polynomial_real, polynomial_imag, complex(x, i), degree)
@@ -219,3 +150,71 @@ st.write('Since computers don\'t have infinite processing power, I can\'t graph 
 st.write('A point is a "zero" of the polynomial when both the real and imaginary parts equal zero. In other words, a zero is where both the red and blue dots overlap at y=0.')
 st.write('This has been designed with dark mode in mind. Click the three dots (upper right hand corner), click settings, and under "Choose app theme, colors and fonts" select "Dark" for best viewing experience.')
 st.write('If anyone is good at Python, Plotly, or Streamlit and has an idea of how to make this better, implement a feature, or help in some way, feel free to help! https://github.com/Survivalist83/graphing-polynomials')
+
+def hash_list(list):
+    return hash(tuple(list))
+
+def hash_complex(complex_number):
+    return hash((complex_number.real, complex_number.imag))
+
+def calculate_y(polynomial_real, polynomial_imag, x, degree):
+    y_val = 0
+    for j in range(degree + 1):
+        y_val = y_val + (x ** (degree - j) * (polynomial_real[j] + polynomial_imag[j]))
+    return y_val
+
+def check_circle(real, imag):
+    x = (real - (0.5 * (X_MIN + X_MAX))) ** 2 * 4 / ((X_MIN - X_MAX) ** 2)
+    y = (imag - (0.5 * (I_MIN + I_MAX))) ** 2 * 4 / ((I_MIN - I_MAX) ** 2)
+    return x + y <= 1
+
+def offset_polar(radians, type):
+    if (SHAPE != type or radians % (math.pi / 2) == 0):
+        return 1
+    else: # This code is ChatGPT's doing, not mine. I haven't taken trig yet and don't fully understand this :)
+        left_right = abs(1 / math.cos(radians % (math.pi / 2)))
+        up_down = abs(1 / math.sin(radians % (math.pi / 2)))
+        return min(left_right, up_down)
+
+@st.cache_data(hash_funcs={list: hash_list})
+def write_polynomial(polynomial_real, polynomial_imag):
+    if (len(polynomial_real) != len(polynomial_imag)): return('There has been an error calculating the polynomial.') # this should never throw, ever
+    leng = len(polynomial_real)
+
+    poly = ''
+    for i in range(leng):
+        real = int(polynomial_real[i]) if (polynomial_real[i].is_integer()) else polynomial_real[i]
+        imag = int(polynomial_imag[i].imag) if (polynomial_imag[i].imag.is_integer()) else polynomial_imag[i]
+        
+        # handles the plus or minus at the beginning of each term
+        if (poly != '' and (polynomial_real[i] != 0 or polynomial_imag[i] != 0)):
+            if (real != 0 and imag != 0): # handles compex coefficients
+                poly = poly + ' + ' if (i != 0) else '' # always a plus since complex coefficients will always be in parenthesis
+            elif (real != 0): # handles real coefficients
+                poly = poly + (' +' if (real > 0) else ' -')
+            elif (imag != 0): # handles imag coefficients
+                poly = poly + (' +' if (imag > 0) else ' -')
+            else: st.write ('if you see this there is a catastrophic error (it\'s probably not that bad lol)')
+        
+        x = 'x' if (leng - i > 1) else ''
+        e = f'^{leng - i - 1}' if (leng - i > 2) else ''
+        # writes the actual coefficient
+        if (real != 0 and imag != 0): # handles complex coefficients
+            if (imag == 1): a = ' '
+            elif (imag == -1): a = ' '
+            else: a = ' ' + str(abs(imag))
+            poly = poly + f'({real} {"+" if (imag > 0) else "-"}{a}i){x}{e}'
+        
+        elif (real != 0): # handles real coefficients
+            if (real == 1 and i + 1 != leng): a = ' '
+            elif (real == -1 and i + 1 != leng): a = ' '
+            else: a = ' ' + str(abs(real))
+            poly = poly + a + x + e
+        
+        elif (imag != 0): # handles imaginary (but specifically not complex) coefficients
+            if (imag == 1): a = ' '
+            elif (imag == -1): a = ' '
+            else: a = ' ' + str(abs(imag))
+            poly = poly + a + 'i' + x + e
+
+    return poly
