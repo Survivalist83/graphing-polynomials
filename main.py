@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
+import math
 
 st.set_page_config(layout='wide')
 
@@ -59,22 +60,31 @@ def calculate_y(polynomial_real, polynomial_imag, x, degree):
 
 # Window settings
 with st.sidebar:
-    MODE = st.radio(label='Mode', options=['Cartesian Square', 'Cartesian Circle'],
+    MODE = st.radio(label='Mode', options=['Cartesian Square', 'Cartesian Circle', 'Polar'],
                     help='The default option is Cartesian Square, and it is safe to leave it there. ' +
                     'Cartesian Circle shaves off points around the edges so it looks more circular.')
     
     # Window tab; sets the desired window for the drawing
     st.header('Window')
-    X_MIN = st.number_input(label='Left X Bound', value=-10.0, step=1.0)
-    X_MAX = st.number_input(label='Right X Bound', value=10.0, step=1.0)
-    X_STEP = st.number_input(label='X Step', value=1.0, step=1.0)
-    I_MIN = st.number_input(label='Left I Bound', value=-10.0, step=1.0)
-    I_MAX = st.number_input(label='Right I Bound', value=10.0, step=1.0)
-    I_STEP = st.number_input(label='I Step', value=1.0, step=1.0)
+    if (MODE == 'Cartesian Square' or MODE == 'Cartesian Circle'):
+        X_MIN = st.number_input(label='Left X Bound', value=-10.0, step=1.0)
+        X_MAX = st.number_input(label='Right X Bound', value=10.0, step=1.0)
+        X_STEP = st.number_input(label='X Step', value=1.0, step=1.0)
+        I_MIN = st.number_input(label='Left I Bound', value=-10.0, step=1.0)
+        I_MAX = st.number_input(label='Right I Bound', value=10.0, step=1.0)
+        I_STEP = st.number_input(label='I Step', value=1.0, step=1.0)
+        WINDOW_SETTINGS = [MODE, X_MIN, X_MAX, X_STEP, I_MIN, I_MAX, I_STEP]
+    elif (MODE == 'Polar'):
+        THETA_STEP = st.number_input(label='Theta Step (Degrees)', value=8.0, step=1.0)
+        DOT_COUNT = st.number_input(label='Number of Dots per Theta Step', value=10, step=1)
+        DOT_INCREMENT = st.number_input(label='Gap between Dots', value=1.0, step=1.0)
+        WINDOW_SETTINGS = [THETA_STEP, DOT_COUNT, DOT_INCREMENT]
+    
     DOT_SIZE = st.number_input(label='Dot Size', value=3, min_value=1, max_value=10, step=1)
     GRAPH_COUNT = st.number_input(label='Number of Graphs', value=1, min_value=1, max_value=3)
     OVERLAP_GRAPHS = st.checkbox(label='Overlap real and imaginary graphs when showing complex?', value=False)
-    WINDOW_SETTINGS = [MODE, X_MIN, X_MAX, X_STEP, I_MIN, I_MAX, I_STEP, OVERLAP_GRAPHS]
+    WINDOW_SETTINGS.append(OVERLAP_GRAPHS)
+
 
 def check_circle(real, imag):
     x = (real - (0.5 * (X_MIN + X_MAX))) ** 2 * 4 / ((X_MIN - X_MAX) ** 2)
@@ -115,10 +125,22 @@ def calculate_polynomial(polynomial_real, polynomial_imag, degree, real_imag, WI
     imag = real_imag == 'Imaginary' or real_imag == 'Complex'
 
     # calculates dot locations
-    points = pd.DataFrame(columns=['x', 'i', 'y', 'type'])
-    for x in np.arange(X_MIN, X_MAX + 1, X_STEP):
-        for i in np.arange(I_MIN, I_MAX + 1, I_STEP):
-            if (MODE != 'Cartesian Circle' or check_circle(x, i)):
+    if (MODE == 'Cartesian Square' or MODE == 'Cartesian Circle'): # Cartesian Mode
+        points = pd.DataFrame(columns=['x', 'i', 'y', 'type'])
+        for x in np.arange(X_MIN, X_MAX + 1, X_STEP):
+            for i in np.arange(I_MIN, I_MAX + 1, I_STEP):
+                if (MODE != 'Cartesian Circle' or check_circle(x, i)):
+                    y = calculate_y(polynomial_real, polynomial_imag, complex(x, i), degree)
+                    if (real): points.loc[len(points)] = {'x': x, 'i': i, 'y': y.real, 'type': 'real'}
+                    if (imag): points.loc[len(points)] = {'x': x, 'i': i, 'y': y.imag, 'type': 'imag'}
+    
+    elif (MODE == 'Polar'): # Polar Mode
+        points = pd.DataFrame(columns=['x', 'i', 'y', 'type'])
+        for theta in range(int(360.0 / THETA_STEP)):
+            for increment in range(DOT_COUNT):
+                radius = increment * DOT_INCREMENT
+                x = radius * math.cos(math.radians(theta * THETA_STEP))
+                i = radius * math.sin(math.radians(theta * THETA_STEP))
                 y = calculate_y(polynomial_real, polynomial_imag, complex(x, i), degree)
                 if (real): points.loc[len(points)] = {'x': x, 'i': i, 'y': y.real, 'type': 'real'}
                 if (imag): points.loc[len(points)] = {'x': x, 'i': i, 'y': y.imag, 'type': 'imag'}
